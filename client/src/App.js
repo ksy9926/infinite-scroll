@@ -9,6 +9,7 @@ function App() {
       <Switch>
         <Route exact path="/" component={MainPage} />
         <Route exact path="/a:id" component={DetailPage} />
+        <Route exact path="/b:id" component={DetailPage} />
       </Switch>
     </Router>
   );

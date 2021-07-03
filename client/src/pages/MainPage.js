@@ -5,20 +5,22 @@ import axios from "axios";
 
 function MainPage() {
   const history = useHistory();
+  const [clicked, setClicked] = useState("a");
   const [page, setPage] = useState(0);
-  const [postA, setPostA] = useState([]);
+  const [post, setPost] = useState([]);
   const [search, setSearch] = useState("");
 
   // 게시물 내용 받아오기
   useEffect(() => {
+    console.log("게시물 내용 받아오기");
     async function fetchData() {
       const response = await axios.get(
-        `https://recruit-api.yonple.com/recruit/857291/a-posts?page=${page}`
+        `https://recruit-api.yonple.com/recruit/857291/${clicked}-posts?page=${page}`
       );
-      setPostA([...response.data]);
+      setPost(response.data);
     }
     fetchData();
-  }, [page]);
+  }, [clicked]);
 
   //   const infiniteScroll = useCallback(() => {
   //     let scrollHeight = Math.max(
@@ -50,7 +52,7 @@ function MainPage() {
   //   return () => window.addEventListener("scroll", infiniteScroll, true);
 
   // 검색어 필터(1. 검색어가 없거나 2. 게시물 제목에 검색어가 포함될 경우만 리턴)
-  const filtered = [...postA].filter((data) => {
+  const filtered = [...post].filter((data) => {
     if (search == null) {
       return data;
     } else if (data.title.toLowerCase().includes(search.toLowerCase())) {
@@ -64,7 +66,7 @@ function MainPage() {
       key={post["id"]}
       onClick={() => {
         history.push({
-          pathname: `/a?id=${post["id"]}`,
+          pathname: `/${clicked}?id=${post["id"]}`,
           state: { post: post },
         });
       }}
@@ -108,8 +110,22 @@ function MainPage() {
           </article>
           <article className="buttonPostWrap">
             <section className="buttonWrap">
-              <button className="activeButton">A Posts</button>
-              <button className="button">B Posts</button>
+              <button
+                className={clicked === "a" ? "activeButton" : "button"}
+                onClick={() => {
+                  setClicked("a");
+                }}
+              >
+                A Posts
+              </button>
+              <button
+                className={clicked === "b" ? "activeButton" : "button"}
+                onClick={() => {
+                  setClicked("b");
+                }}
+              >
+                B Posts
+              </button>
             </section>
             <ul className="postOuterWrap">{posts}</ul>
           </article>
