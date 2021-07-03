@@ -1,55 +1,58 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useHistory } from "react-router-dom";
 import axios from "axios";
 
 function MainPage() {
   const history = useHistory();
   const [clicked, setClicked] = useState("a");
-  const [page, setPage] = useState(0);
+  const [now, setNow] = useState("a");
+  const [page, setPage] = useState(-1);
   const [post, setPost] = useState([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(sessionStorage.getItem("search"));
+  const intersect = useRef(null);
+
+  // 무한스크롤 기본값 설정(intersection observer)
+  const options = {
+    root: null,
+    rootMargin: "20px",
+    threshold: 1.0,
+  };
+
+  // 무한스크롤 콜백함수(페이지 추가)
+  const handleObserver = useCallback(async (entries) => {
+    const target = entries[0];
+    if (target.isIntersecting) {
+      setPage((page) => page + 1);
+    }
+  }, []);
+
+  // 무한스크롤(마지막값이 뷰포트에 들어온 경우 콜백함수 호출)
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, options);
+    if (intersect.current) {
+      observer.observe(intersect.current);
+    }
+    return () => observer.disconnect();
+  }, [handleObserver]);
 
   // 게시물 내용 받아오기
   useEffect(() => {
-    console.log("게시물 내용 받아오기");
     async function fetchData() {
-      const response = await axios.get(
-        `https://recruit-api.yonple.com/recruit/857291/${clicked}-posts?page=${page}`
-      );
-      setPost(response.data);
+      if (now === clicked) {
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_URL}/${clicked}-posts?page=${page}`
+        );
+        setPost([...post, ...response.data]);
+      } else {
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_URL}/${clicked}-posts?page=${page}`
+        );
+        setPost(response.data);
+        setNow(clicked);
+      }
     }
     fetchData();
-  }, [clicked]);
-
-  //   const infiniteScroll = useCallback(() => {
-  //     let scrollHeight = Math.max(
-  //       document.documentElement.scrollHeight,
-  //       document.body.scrollHeight
-  //     );
-  //     let scrollTop = Math.max(
-  //       document.documentElement.scrollTop,
-  //       document.body.scrollTop
-  //     );
-  //     let clientHeight = document.documentElement.clientHeight;
-
-  //     if (scrollTop + clientHeight > scrollHeight * 0.9) {
-  //       setPage(page + 1);
-  //       axios
-  //         .get(
-  //           `https://recruit-api.yonple.com/recruit/857291/a-posts?page=${
-  //             page + 1
-  //           }`
-  //         )
-  //         .then((response) => {
-  //           console.log("postA, response", [...postA], [...response.data]);
-  //           setPostA([...postA, ...response.data]);
-  //         });
-  //     }
-  //   }, [page, postA]);
-
-  //   window.addEventListener("scroll", infiniteScroll, true);
-  //   return () => window.addEventListener("scroll", infiniteScroll, true);
+  }, [page, clicked]);
 
   // 검색어 필터(1. 검색어가 없거나 2. 게시물 제목에 검색어가 포함될 경우만 리턴)
   const filtered = [...post].filter((data) => {
@@ -82,6 +85,7 @@ function MainPage() {
   // 검색어 입력시 검색어 저장
   const onChangeHandler = (e) => {
     setSearch(e.target.value);
+    sessionStorage.setItem("search", e.target.value);
   };
 
   return (
@@ -101,6 +105,7 @@ function MainPage() {
                   type="text"
                   id="search"
                   name="search"
+                  value={search ? search : ""}
                   placeholder="검색어를 입력하세요"
                   onChange={onChangeHandler}
                   className="searchInput"
@@ -112,22 +117,37 @@ function MainPage() {
             <section className="buttonWrap">
               <button
                 className={clicked === "a" ? "activeButton" : "button"}
-                onClick={() => {
-                  setClicked("a");
-                }}
+                onClick={
+                  clicked === "b"
+                    ? () => {
+                        setClicked("a");
+                        setPage(0);
+                        sessionStorage.setItem("clicked", "a");
+                      }
+                    : null
+                }
               >
                 A Posts
               </button>
               <button
                 className={clicked === "b" ? "activeButton" : "button"}
-                onClick={() => {
-                  setClicked("b");
-                }}
+                onClick={
+                  clicked === "a"
+                    ? () => {
+                        setClicked("b");
+                        setPage(0);
+                        sessionStorage.setItem("clicked", "b");
+                      }
+                    : null
+                }
               >
                 B Posts
               </button>
             </section>
-            <ul className="postOuterWrap">{posts}</ul>
+            <ul className="postOuterWrap">
+              {posts}
+              <div ref={intersect}></div>
+            </ul>
           </article>
         </main>
       </section>
