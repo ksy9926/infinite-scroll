@@ -6,34 +6,10 @@ function MainPage() {
   const history = useHistory();
   const [clicked, setClicked] = useState("a");
   const [now, setNow] = useState("a");
-  const [page, setPage] = useState(-1);
+  const [page, setPage] = useState(0);
   const [post, setPost] = useState([]);
   const [search, setSearch] = useState(sessionStorage.getItem("search"));
   const intersect = useRef(null);
-
-  // 무한스크롤 기본값 설정(intersection observer)
-  const options = {
-    root: null,
-    rootMargin: "20px",
-    threshold: 1.0,
-  };
-
-  // 무한스크롤 콜백함수(페이지 추가)
-  const handleObserver = useCallback(async (entries) => {
-    const target = entries[0];
-    if (target.isIntersecting) {
-      setPage((page) => page + 1);
-    }
-  }, []);
-
-  // 무한스크롤(마지막값이 뷰포트에 들어온 경우 콜백함수 호출)
-  useEffect(() => {
-    const observer = new IntersectionObserver(handleObserver, options);
-    if (intersect.current) {
-      observer.observe(intersect.current);
-    }
-    return () => observer.disconnect();
-  }, [handleObserver]);
 
   // 게시물 내용 받아오기
   useEffect(() => {
@@ -81,6 +57,32 @@ function MainPage() {
       <p className="postContent">{post["content"]}</p>
     </li>
   ));
+
+  // 무한스크롤 기본값 설정(intersection observer)
+  const options = {
+    root: null,
+    rootMargin: "20px",
+    threshold: 1.0,
+  };
+
+  // 무한스크롤 콜백함수(페이지 추가)
+  const handleObserver = useCallback(async (entries) => {
+    const target = entries[0];
+    if (target.isIntersecting) {
+      setTimeout(() => {
+        setPage((page) => page + 1);
+      }, 100);
+    }
+  }, []);
+
+  // 무한스크롤(마지막 위치가 뷰포트에 들어온 경우 콜백함수 호출)
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, options);
+    if (intersect.current) {
+      observer.observe(intersect.current);
+    }
+    return () => observer.disconnect();
+  }, [handleObserver]);
 
   // 검색어 입력시 검색어 저장
   const onChangeHandler = (e) => {
